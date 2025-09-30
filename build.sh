@@ -21,7 +21,18 @@ echo "使用 Android JAR: $ANDROID_JAR"
 javac -cp "libs/api-82.jar:$ANDROID_JAR" -d build src/com/example/zdsoftbypass/*.java
 
 echo "2. 创建DEX文件..."
-dx --dex --output=build/classes.dex build/
+# 使用 d8 工具替代 dx（新版本Android SDK）
+if command -v d8 >/dev/null 2>&1; then
+    echo "使用 d8 工具创建DEX..."
+    d8 build/com/example/zdsoftbypass/*.class --lib "$ANDROID_JAR" --output build/
+    mv build/classes.dex build/classes.dex 2>/dev/null || true
+elif command -v dx >/dev/null 2>&1; then
+    echo "使用 dx 工具创建DEX..."
+    dx --dex --output=build/classes.dex build/
+else
+    echo "错误: 找不到 d8 或 dx 工具"
+    exit 1
+fi
 
 echo "3. 准备资源文件..."
 mkdir -p build/res/values
@@ -51,13 +62,8 @@ if [ ! -f my-release-key.keystore ]; then
 fi
 
 echo "7. 签名APK..."
-# 使用jarsigner作为备选方案
-if command -v apksigner >/dev/null 2>&1; then
-    apksigner sign --ks my-release-key.keystore --ks-pass pass:password --key-pass pass:password --min-sdk-version 21 build/ZDSoftBypass-unsigned.apk
-else
-    echo "使用jarsigner签名..."
-    jarsigner -keystore my-release-key.keystore -storepass password -keypass password build/ZDSoftBypass-unsigned.apk alias_name
-fi
+# 使用 jarsigner 作为主要签名工具
+jarsigner -keystore my-release-key.keystore -storepass password -keypass password -digestalg SHA1 -sigalg SHA1withRSA build/ZDSoftBypass-unsigned.apk alias_name
 
 # 重命名已签名的APK
 mv build/ZDSoftBypass-unsigned.apk build/ZDSoftBypass-signed.apk
