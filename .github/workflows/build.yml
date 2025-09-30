@@ -22,15 +22,20 @@ jobs:
     
     - name: Set up Android SDK
       uses: android-actions/setup-android@v3
-      with:
-        # 设置跳过 JDK 版本检查
-        skip-jdk-version-check: true
     
+    - name: Install Android tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y android-sdk aapt dx zipalign
+        
     - name: Build APK
       run: |
         chmod +x build.sh
         ./build.sh
-    
+        
+    - name: List build directory contents
+      run: ls -la build/
+        
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
